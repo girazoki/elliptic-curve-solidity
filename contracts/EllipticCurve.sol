@@ -227,23 +227,31 @@ contract EllipticCurve {
   /// @return k1 and k2  such that k=k1+k2*LAMBDA (mod n)
   function scalarDecomposition (uint256 _k, uint256 _pp, uint256 _LAMBDA) public pure returns (int256[2] memory) {
   // Extended Euclidean Algorithm for n and LAMBDA
-    int256 t = 1;
+    int256[2] memory t;
+    t[0] = 1;
+    t[1] = 0;
+    uint256[2] memory r;
+    r[0] = uint256(_LAMBDA);
+    r[1] = uint256(_pp);
+
+   /* int256 t = 1;
     int256 oldt = 0;
     uint256 r = uint256(_LAMBDA);
-    uint256 oldr = uint256(_pp);
+    uint256 oldr = uint256(_pp);*/
+
     uint256 quotient;
 
-    while (uint256(r) >= sqrt(_pp)) {
-      quotient = oldr / r;
-      (oldr, r) = (r, oldr - quotient*r);
-      (oldt, t) = (t, oldt - int256(quotient)*t);
+    while (uint256(r[0]) >= sqrt(_pp)) {
+      quotient = r[1] / r[0];
+      (r[1], r[0]) = (r[0], r[1] - quotient*r[0]);
+      (t[1], t[0]) = (t[0], t[1] - int256(quotient)*t[0]);
     }
-  // the vectors v1=(a1, b1) and v2=(a2,b2)
     int256[4] memory ab;
-    ab[0] = int256(r);
-    ab[1] = int256(0 - t);
-    ab[2] = int256(oldr);
-    ab[3] = 0-oldt;
+  // the vectors v1=(a1, b1) and v2=(a2,b2)
+    ab[0] = int256(r[0]);
+    ab[1] = int256(0 - t[0]);
+    ab[2] = int256(r[1]);
+    ab[3] = 0-t[1];
 
   //b2*K
     uint[3] memory test;
@@ -695,21 +703,25 @@ contract EllipticCurve {
     shift = 256 - shift;
     aM = (_aM << shift) + (shift > 128 ? _am << (shift - 128) : _am >> (128 - shift));
     uint256 a0 = (_am << shift) & 2**128-1;
-    uint256 b = _b << shift;
-    (uint256 b1, uint256 b0) = (b >> 128, b & 2**128-1);
+    // uint256 b = _b << shift;
+    
+    uint256[2] memory b;
+
+    //(uint256 b1, uint256 b0) = (b >> 128, b & 2**128-1);
+    (b[1], b[0]) = ((_b << shift) >> 128, (_b << shift) & 2**128-1);
 
     uint256 rM;
-    uint256 q = aM / b1;
-    rM = aM % b1;
+    uint256 q = aM / b[1];
+    rM = aM % b[1];
 
-    uint256 rsub0 = (q & 2**128-1) * b0;
-    uint256 rsub21 = (q >> 128) * b0 + (rsub0 >> 128);
+    uint256 rsub0 = (q & 2**128-1) * b[0];
+    uint256 rsub21 = (q >> 128) * b[0] + (rsub0 >> 128);
     rsub0 &= 2**128-1;
 
     while (rsub21 > rM || rsub21 == rM && rsub0 > a0) {
       q--;
-      a0 += b0;
-      rM += b1 + (a0 >> 128);
+      a0 += b[0];
+      rM += b[1] + (a0 >> 128);
       a0 &= 2**128-1;
     }
 
